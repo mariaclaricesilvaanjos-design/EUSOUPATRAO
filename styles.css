@@ -142,6 +142,7 @@ main{max-width:none;padding:22px 18px 34px}
 .cloud-account-status{display:flex;align-items:flex-start;gap:11px}
 .cloud-account-status .status-dot{flex:none;margin:7px 0 0;background:var(--muted);box-shadow:none}
 .cloud-account-status .status-dot.cloud-connected{background:#30b779;box-shadow:0 0 0 4px #30b77922}
+.cloud-account-status .status-dot.cloud-authenticated{background:#6658d3;box-shadow:0 0 0 4px #6658d322}
 .cloud-account-status>span:last-child{display:grid;gap:3px}
 .cloud-account-status strong{font-size:15px}
 .cloud-account-status small{font-size:13px;color:var(--muted);overflow-wrap:anywhere}

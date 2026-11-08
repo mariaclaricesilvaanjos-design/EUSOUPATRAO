@@ -56,6 +56,7 @@
   const firstVisit=(()=>{try{return localStorage.getItem(STORAGE_KEY)===null;}catch{return false;}})();
   let state=loadState(),orderFilter="todos",advancedTab="recipes",toastTimer;
   const CLOUD_REVISION_KEY="prato-prosa-cloud-revision-v1";
+  const CLOUD_LOGIN_PENDING_KEY="prato-prosa-google-login-pending-v1";
   let supabaseClient=null,supabaseModulePromise=null,cloudUser=null,cloudRevision=null,cloudSyncEnabled=false,cloudMfaRequired=false,cloudMfaMode="enroll",cloudConnecting=false,cloudSaveTimer=null,cloudSaveQueue=Promise.resolve(),suppressCloudSave=false,cloudStatusText="Dados salvos neste dispositivo",cloudDetailText="Entre para configurar a sincronização Supabase.";
 
   function loadState(){
@@ -84,12 +85,18 @@
     $("#cloud-status").textContent=cloudStatusText;
     $("#cloud-account-email").textContent=cloudDetailText;
     $("#cloud-status-dot").classList.toggle("cloud-connected",Boolean(cloudUser&&cloudSyncEnabled));
+    $("#cloud-status-dot").classList.toggle("cloud-authenticated",Boolean(cloudUser&&!cloudSyncEnabled));
     $("#cloud-signin").hidden=!configured||Boolean(cloudUser);
     $("#cloud-mfa-enroll").hidden=!cloudMfaRequired;
     $("#cloud-mfa-enroll").dataset.action=cloudMfaMode==="challenge"?"cloud-mfa-challenge":"cloud-mfa-enroll";
     $("#cloud-mfa-enroll").textContent=cloudMfaMode==="challenge"?"Digitar código de verificação":"Configurar verificação em duas etapas";
     $("#cloud-upload").hidden=!cloudUser||cloudSyncEnabled||cloudMfaRequired;
     $("#cloud-signout").hidden=!cloudUser;
+    $("#business-storage-status").textContent=cloudUser?(cloudSyncEnabled?"Google conectado · sincronizado":"Google conectado"):"Dados neste dispositivo";
+    $("#storage-label").textContent=cloudUser?"Conta Google conectada":"Seus dados são locais";
+    $("#connection-label").textContent=cloudUser
+      ?cloudSyncEnabled?"Sincronização Supabase ativa":cloudMfaRequired?"Verificação em duas etapas pendente":"Sincronização de dados pendente"
+      :"Disponível offline";
     $("#cloud-sync-note").textContent=!configured
       ?"O projeto Supabase ainda não está configurado. O app continua salvando localmente; adicione Project URL e chave publicável em supabase-config.js. Nunca use a chave service_role aqui."
       :cloudUser
@@ -128,7 +135,7 @@
   }
   async function loadCloudUser(user){
     const client=await getSupabaseClient();
-    updateCloudUI("Verificando segurança da conta",user.email||"Conta autenticada");
+    updateCloudUI("Conta Google conectada",user.email||"Conta autenticada");
     const {data:assurance,error:assuranceError}=await client.auth.mfa.getAuthenticatorAssuranceLevel();
     if(assuranceError)throw assuranceError;
     if(assurance.currentLevel!=="aal2"){
@@ -149,7 +156,8 @@
     const {data,error}=await client.from("user_app_state").select("payload,revision,updated_at").eq("user_id",user.id).maybeSingle();
     if(error){
       console.error("Não foi possível ler os dados do Supabase.",error);
-      cloudRevision=null;updateCloudUI("Conta conectada; banco ainda não disponível",error.message);
+      cloudRevision=null;
+      updateCloudUI("Conta Google conectada; banco indisponível",error.message);
       notify("Não foi possível acessar a tabela. Aplique a migração Supabase e confira as policies RLS.");return;
     }
     const hasLocal=localStorage.getItem(STORAGE_KEY)!==null;
@@ -158,7 +166,7 @@
     const knownRevision=syncMarker?.userId===user.id?Number(syncMarker.revision):0;
     if(!data){
       cloudRevision=null;
-      updateCloudUI("Nenhuma cópia na nuvem",hasLocal?"Envie os dados deste dispositivo quando estiver pronto.":"A conta está pronta para receber os primeiros dados.");
+      updateCloudUI("Conta Google conectada",hasLocal?"Não há cópia na nuvem. Escolha se quer enviar os dados deste dispositivo.":"Não há cópia na nuvem. A conta está pronta para receber os primeiros dados.");
       return;
     }
     if(hasLocal&&knownRevision!==Number(data.revision)){
@@ -197,8 +205,27 @@
     try{
       const client=await getSupabaseClient(),{data,error}=await client.auth.getSession();
       if(error)throw error;
-      if(data.session)await connectCloudUser(data.session.user);
-      else updateCloudUI("Dados salvos neste dispositivo","Entre com Google para conectar à sua conta.");
+      const loginPending=localStorage.getItem(CLOUD_LOGIN_PENDING_KEY);
+      const authError=new URLSearchParams(location.search).get("error_description")||new URLSearchParams(location.search).get("error");
+      if(authError){
+        localStorage.removeItem(CLOUD_LOGIN_PENDING_KEY);
+        updateCloudUI("Não foi possível entrar com Google","Confira a configuração do provedor e tente novamente.");
+        notify(`Login com Google não concluído: ${authError}`);
+        return;
+      }
+      if(data.session){
+        await connectCloudUser(data.session.user);
+        if(loginPending){
+          localStorage.removeItem(CLOUD_LOGIN_PENDING_KEY);
+          const returnRoute=loginPending.replace(/^#/,"");
+          if(routeNames[returnRoute])navigate(returnRoute,true);
+          notify(`Login com Google confirmado${data.session.user.email?`: ${data.session.user.email}`:""}.`);
+        }
+      }else{
+        localStorage.removeItem(CLOUD_LOGIN_PENDING_KEY);
+        updateCloudUI("Dados salvos neste dispositivo","Entre com Google para conectar à sua conta.");
+        if(loginPending)notify("Não foi possível confirmar a sessão Google. Tente entrar novamente.");
+      }
     }catch(error){
       console.error("Não foi possível inicializar o Supabase.",error);
       updateCloudUI("Supabase indisponível","Confira a conexão, a URL e a chave publicável.");
@@ -238,8 +265,16 @@
   }
   async function signInToCloud(){
     const client=await getSupabaseClient();
-    const {error}=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:`${location.origin}${location.pathname}`}});
-    if(error)throw error;
+    localStorage.setItem(CLOUD_LOGIN_PENDING_KEY,location.hash||"#configuracoes");
+    updateCloudUI("Abrindo o login do Google","Você voltará para esta tela após autorizar a conta.");
+    try{
+      const {error}=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:`${location.origin}${location.pathname}`}});
+      if(error)throw error;
+    }catch(error){
+      localStorage.removeItem(CLOUD_LOGIN_PENDING_KEY);
+      updateCloudUI("Não foi possível iniciar o login","Os dados locais continuam disponíveis.");
+      throw error;
+    }
   }
   async function signOutFromCloud(){
     clearTimeout(cloudSaveTimer);
