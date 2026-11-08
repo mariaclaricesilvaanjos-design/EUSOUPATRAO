@@ -42,7 +42,7 @@ main{max-width:1450px;padding:34px 43px 50px;margin:0 auto}.page{display:none;an
 /* Dashboard visual refresh inspired by the supplied reference. */
 :root{background:#f3f6f4}
 :root[data-mode=dark]{background:#1b1c27}
-.sidebar{background:#063b2c;border-right-color:#15503e;color:#f5fbf8}
+.sidebar{background:color-mix(in srgb,var(--accent) 43%,#062d24);border-right-color:color-mix(in srgb,var(--accent) 38%,#15503e);color:#f5fbf8}
 .brand{padding-bottom:30px}
 .brand-mark{background:#07814f;color:#fff4d6;box-shadow:0 6px 16px #001c1470}
 .brand-copy strong{color:#fff}
@@ -55,7 +55,7 @@ main{max-width:1450px;padding:34px 43px 50px;margin:0 auto}.page{display:none;an
 .primary-nav{gap:6px}
 .nav-link{height:43px;color:#e0eee8}
 .nav-link:hover{background:#ffffff12;color:#fff}
-.nav-link.active{background:linear-gradient(100deg,#087d4c,#0d9660);color:#fff;box-shadow:0 5px 14px #001c1445}
+.nav-link.active{background:linear-gradient(100deg,color-mix(in srgb,var(--accent) 78%,#004d34),color-mix(in srgb,var(--accent) 72%,#0d9660));color:#fff;box-shadow:0 5px 14px #001c1445}
 .nav-count{background:#e34d45;color:#fff}
 .sidebar-bottom .offline-indicator,.profile-button{border-color:#ffffff26}
 .status-dot{background:#3bd45b;box-shadow:0 0 0 3px #3bd45b30}
@@ -65,7 +65,7 @@ main{max-width:1450px;padding:34px 43px 50px;margin:0 auto}.page{display:none;an
 .icon-button{width:38px;height:38px;border-radius:50%}
 .top-avatar{width:39px;height:39px}
 main{max-width:none;padding:22px 18px 34px}
-#page-inicio .welcome-row{min-height:120px;padding:22px 26px;margin:0 0 15px;border:1px solid #174b37;border-radius:15px;background:linear-gradient(112deg,#073b2c 0%,#0a5339 56%,#123c2d 100%);box-shadow:0 8px 20px #082c1e20;color:#fff}
+#page-inicio .welcome-row{min-height:120px;padding:22px 26px;margin:0 0 15px;border:1px solid color-mix(in srgb,var(--accent) 36%,#174b37);border-radius:15px;background:linear-gradient(112deg,color-mix(in srgb,var(--accent) 43%,#073b2c) 0%,color-mix(in srgb,var(--accent) 52%,#0a5339) 56%,color-mix(in srgb,var(--accent) 35%,#123c2d) 100%);box-shadow:0 8px 20px #082c1e20;color:#fff}
 #page-inicio .welcome-row .eyebrow{color:#c3dfd1}
 #page-inicio .welcome-row h1{font-size:clamp(30px,3vw,39px);margin-bottom:5px}
 #page-inicio .welcome-row .subtitle{color:#e2eee8}
@@ -117,24 +117,22 @@ main{max-width:none;padding:22px 18px 34px}
   #page-inicio .dashboard-grid{grid-template-columns:minmax(0,1fr);gap:10px}
   #page-inicio .dashboard-chart,#page-inicio .orders-panel,#page-inicio .quick-panel,#page-inicio .stock-panel,#page-inicio .tip-card{grid-column:1}
   #page-inicio .dashboard-chart{padding:13px 11px}
-  .sidebar{background:#063b2c}
+  .sidebar{background:color-mix(in srgb,var(--accent) 43%,#062d24)}
 }
-.donation-spotlight{display:flex;align-items:center;gap:14px;margin:0 0 15px;padding:13px 16px;border:1px solid #d6e9dc;border-radius:14px;background:linear-gradient(105deg,#eaf6ee,#fffaf0);box-shadow:0 5px 16px #1737280b}
-.donation-spotlight-icon{width:42px;height:42px;display:grid;place-items:center;flex:none;border-radius:13px;background:#fff0cd;color:#ab6c11;font-size:27px}
+.donation-spotlight{display:flex;align-items:center;gap:14px;margin:0 0 15px;padding:13px 16px;border:1px solid color-mix(in srgb,var(--accent) 20%,var(--line));border-radius:14px;background:linear-gradient(105deg,var(--accent-light),var(--surface) 88%);box-shadow:0 5px 16px #1737280b}
+.donation-spotlight-icon{width:42px;height:42px;display:grid;place-items:center;flex:none;border-radius:13px;background:var(--surface);color:var(--accent);font-size:27px;box-shadow:var(--shadow)}
 .donation-spotlight-copy{display:grid;gap:2px;flex:1;min-width:0}
-.donation-spotlight-copy strong{font-size:16px;color:#174c37}
-.donation-spotlight-copy span{font-size:13px;color:#587565}
-.donation-spotlight-button{min-height:40px;background:#087d4c;color:#fff;white-space:nowrap;box-shadow:0 4px 11px #087d4c28}
-.donation-spotlight-button:hover{background:#066a40}
+.donation-spotlight-copy strong{font-size:16px;color:var(--ink)}
+.donation-spotlight-copy span{font-size:13px;color:var(--muted)}
+.donation-spotlight-button{min-height:40px;background:var(--accent);color:#fff;white-space:nowrap;box-shadow:0 4px 11px color-mix(in srgb,var(--accent) 28%,transparent)}
+.donation-spotlight-button:hover{filter:brightness(.92)}
 .donation-spotlight-button span{font-size:18px;margin-left:5px}
-:root[data-mode=dark] .donation-spotlight{border-color:#344b3b;background:linear-gradient(105deg,#263f32,#302d27)}
-:root[data-mode=dark] .donation-spotlight-copy strong{color:#e2f5eb}
-:root[data-mode=dark] .donation-spotlight-copy span{color:#b4c9bd}
+:root[data-mode=dark] .donation-spotlight{border-color:color-mix(in srgb,var(--accent) 30%,var(--line));background:linear-gradient(105deg,var(--accent-light),var(--surface) 88%)}
 .donation-dialog-content .dialog-heading{margin-bottom:13px}
 .donation-code-label{margin-top:5px}
 .donation-payload{display:block;width:100%;margin-top:5px;padding:11px;border:1px solid var(--line);border-radius:9px;background:var(--surface-soft);color:var(--ink);font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere;resize:vertical;user-select:all;-webkit-user-select:all}
 .donation-dialog-content .small-note{font-size:13px}
-:root[data-mode=dark] .donation-spotlight-button{background:#12915e;color:#fff}
+:root[data-mode=dark] .donation-spotlight-button{background:var(--accent);color:#fff}
 @media(max-width:760px){
   .donation-spotlight{align-items:flex-start;flex-wrap:wrap;gap:10px;padding:12px}
   .donation-spotlight-copy{flex-basis:calc(100% - 54px);align-self:center}
