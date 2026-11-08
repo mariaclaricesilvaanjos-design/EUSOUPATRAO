@@ -1,0 +1,116 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="#f7f8fb">
+  <meta name="description" content="Organize pedidos, estoque, clientes e finanças do seu negócio de alimentação.">
+  <title>Prato & Prosa — Gestão do seu negócio</title>
+  <link rel="icon" href="./assets/icon.svg" type="image/svg+xml">
+  <link rel="manifest" href="./manifest.webmanifest">
+  <link rel="stylesheet" href="./styles.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Pular para o conteúdo</a>
+  <div class="app-shell">
+    <aside class="sidebar" id="sidebar" aria-label="Menu principal">
+      <a class="brand" href="#inicio" aria-label="Prato & Prosa, início"><span class="brand-mark" aria-hidden="true">p.</span><span class="brand-copy"><strong>prato<span>&</span>prosa</strong><small>gestão descomplicada</small></span></a>
+      <div class="workspace-label">SEU NEGÓCIO</div>
+      <div class="business-switcher"><span class="business-avatar" id="business-avatar">C</span><span><strong id="business-name">Cantinho da Ana</strong><small>Dados neste dispositivo</small></span><span class="switcher-arrow">⌄</span></div>
+      <nav class="primary-nav">
+        <a href="#inicio" class="nav-link active" data-route="inicio"><span class="nav-icon">⌂</span> Visão geral</a>
+        <div class="nav-section">OPERAÇÃO</div>
+        <a href="#pedidos" class="nav-link" data-route="pedidos"><span class="nav-icon">▤</span> Pedidos <span class="nav-count" id="pending-count">0</span></a>
+        <a href="#estoque" class="nav-link" data-route="estoque"><span class="nav-icon">▦</span> Estoque</a>
+        <a href="#clientes" class="nav-link" data-route="clientes"><span class="nav-icon">♙</span> Clientes</a>
+        <div class="nav-section">GESTÃO</div>
+        <a href="#financeiro" class="nav-link" data-route="financeiro"><span class="nav-icon">◷</span> Financeiro</a>
+        <a href="#mensagens" class="nav-link" data-route="mensagens"><span class="nav-icon">▧</span> Mensagens</a>
+        <a href="#avancado" class="nav-link advanced-link" data-route="avancado" hidden><span class="nav-icon">✧</span> Modo avançado</a>
+      </nav>
+      <div class="sidebar-bottom">
+        <div class="offline-indicator"><span class="status-dot"></span><span><strong>Seus dados são locais</strong><small id="connection-label">Disponível offline</small></span></div>
+        <button class="profile-button" data-route="configuracoes"><span class="profile-avatar" id="profile-avatar">A</span><span><strong id="profile-name">Ana Souza</strong><small>Configurações</small></span><span class="profile-menu">···</span></button>
+      </div>
+    </aside>
+    <div class="app-main">
+      <header class="topbar">
+        <button class="mobile-menu" id="menu-toggle" aria-label="Abrir menu" aria-expanded="false">☰</button>
+        <div class="breadcrumb"><span>Meu negócio</span><span class="crumb-divider">/</span><strong id="page-crumb">Visão geral</strong></div>
+        <div class="topbar-actions"><span class="today-date" id="today-date"></span><button class="icon-button" id="theme-toggle" aria-label="Alternar tema claro ou escuro" title="Alternar tema">◐</button><button class="top-avatar" id="top-avatar" data-route="configuracoes" aria-label="Abrir configurações">A</button></div>
+      </header>
+      <main id="main-content" tabindex="-1">
+        <section class="page active" id="page-inicio" aria-labelledby="welcome-title">
+          <div class="welcome-row"><div><p class="eyebrow" id="welcome-date"></p><h1 id="welcome-title">Bom dia, Ana <span class="wave">✳</span></h1><p class="subtitle">Aqui está o resumo do seu negócio hoje.</p></div><button class="button button-primary" data-action="new-order"><span>＋</span> Novo pedido</button></div>
+          <section class="dashboard-cover" id="dashboard-cover" aria-label="Capa do negócio" hidden><img id="dashboard-cover-image" alt=""><div class="cover-overlay"><span class="cover-eyebrow">DO NOSSO CANTINHO</span><strong id="cover-business-name">Cantinho da Ana</strong><span id="cover-hours"></span></div></section>
+          <div class="mode-banner"><span class="mode-symbol">✦</span><span><strong>Modo simples</strong><small>O essencial para tocar seu negócio, sem complicação.</small></span><button class="text-button" data-route="configuracoes">Personalizar <span>→</span></button></div>
+          <div class="metric-grid" id="dashboard-metrics"></div>
+          <div class="dashboard-grid">
+            <section class="panel orders-panel"><div class="panel-heading"><div><h2>Pedidos recentes</h2><p>O que está acontecendo agora</p></div><a href="#pedidos" class="inline-link" data-route="pedidos">Ver todos <span>→</span></a></div><div id="recent-orders"></div></section>
+            <section class="panel stock-panel"><div class="panel-heading"><div><h2>Estoque em atenção</h2><p>Não deixe faltar o que mais vende</p></div><a href="#estoque" class="inline-link" data-route="estoque">Ver estoque <span>→</span></a></div><div id="stock-alerts"></div></section>
+            <section class="panel quick-panel"><div class="panel-heading"><div><h2>Atalhos rápidos</h2><p>Menos cliques, mais tempo para você</p></div></div><div class="quick-actions"><button data-action="new-order"><span class="quick-icon lilac">＋</span><span><strong>Novo pedido</strong><small>Registre uma venda</small></span><span class="quick-arrow">→</span></button><button data-route="estoque"><span class="quick-icon mint">▦</span><span><strong>Atualizar estoque</strong><small>Entradas e produtos</small></span><span class="quick-arrow">→</span></button><button data-route="mensagens"><span class="quick-icon peach">▧</span><span><strong>Mensagem pronta</strong><small>Fale com seus clientes</small></span><span class="quick-arrow">→</span></button></div></section>
+            <section class="tip-card"><div class="tip-illustration">✿</div><div><span class="tip-tag">DICA DO DIA</span><h2>Um carinho depois da venda faz diferença.</h2><p>Envie uma mensagem de pós-venda e convide seu cliente a voltar.</p><a href="#mensagens" data-route="mensagens">Ver mensagem pronta <span>→</span></a></div></section>
+          </div>
+          <footer class="privacy-note"><span>♧</span> Seus dados ficam salvos neste dispositivo. <a href="#configuracoes" data-route="configuracoes">Saiba mais</a></footer>
+        </section>
+
+        <section class="page" id="page-pedidos" aria-labelledby="orders-title">
+          <div class="page-heading"><div><p class="eyebrow">OPERAÇÃO</p><h1 id="orders-title">Pedidos</h1><p class="subtitle">Acompanhe suas vendas em um só lugar.</p></div><button class="button button-primary" data-action="new-order"><span>＋</span> Novo pedido</button></div>
+          <div class="filter-row"><div class="filter-tabs" role="group" aria-label="Filtrar pedidos"><button class="filter-tab selected" data-filter="todos">Todos</button><button class="filter-tab" data-filter="Em preparo">Em preparo</button><button class="filter-tab" data-filter="Pronto">Prontos</button><button class="filter-tab" data-filter="Entregue">Entregues</button></div><label class="search-box"><span>⌕</span><input id="order-search" type="search" placeholder="Buscar cliente" aria-label="Buscar pedido por cliente"></label></div>
+          <section class="panel table-panel"><div id="orders-table"></div></section>
+        </section>
+
+        <section class="page" id="page-estoque" aria-labelledby="stock-title">
+          <div class="page-heading"><div><p class="eyebrow">OPERAÇÃO</p><h1 id="stock-title">Estoque</h1><p class="subtitle">Saiba o que tem, o que está acabando e o que precisa repor.</p></div><button class="button button-primary" data-action="new-product"><span>＋</span> Adicionar produto</button></div>
+          <div class="metric-grid compact-metrics" id="stock-metrics"></div>
+          <section class="panel table-panel"><div class="panel-heading"><div><h2>Seus produtos</h2><p>Estoque de produtos prontos</p></div><label class="search-box"><span>⌕</span><input id="product-search" type="search" placeholder="Buscar produto" aria-label="Buscar produto"></label></div><div id="products-table"></div></section>
+          <p class="feature-note"><span>✦</span> Controle de receitas, insumos e validade PVPS está disponível no <button class="link-button" data-action="enable-advanced">Modo avançado</button>.</p>
+        </section>
+
+        <section class="page" id="page-clientes" aria-labelledby="clients-title">
+          <div class="page-heading"><div><p class="eyebrow">RELACIONAMENTO</p><h1 id="clients-title">Clientes</h1><p class="subtitle">Conheça quem escolhe seu negócio e cuide dessa relação.</p></div><button class="button button-primary" data-action="new-client"><span>＋</span> Adicionar cliente</button></div>
+          <div class="metric-grid compact-metrics" id="client-metrics"></div>
+          <section class="panel table-panel"><div class="panel-heading"><div><h2>Sua clientela</h2><p>Clientes cadastrados neste dispositivo</p></div><label class="search-box"><span>⌕</span><input id="client-search" type="search" placeholder="Buscar cliente" aria-label="Buscar cliente"></label></div><div id="clients-table"></div></section>
+        </section>
+
+        <section class="page" id="page-financeiro" aria-labelledby="finance-title">
+          <div class="page-heading"><div><p class="eyebrow">GESTÃO</p><h1 id="finance-title">Financeiro</h1><p class="subtitle">Acompanhe seu faturamento bruto. Um passo de cada vez.</p></div><button class="button button-primary" data-action="new-sale"><span>＋</span> Registrar venda</button></div>
+          <div class="metric-grid compact-metrics" id="finance-metrics"></div>
+          <section class="panel finance-panel"><div class="panel-heading"><div><h2>Vendas recentes</h2><p>Valores registrados por você</p></div></div><div id="sales-list"></div></section>
+          <p class="feature-note"><span>✦</span> Faturamento bruto não substitui seu controle contábil. Custos, despesas e margens estão no <button class="link-button" data-action="enable-advanced">Modo avançado</button>.</p>
+        </section>
+
+        <section class="page" id="page-mensagens" aria-labelledby="messages-title">
+          <div class="page-heading"><div><p class="eyebrow">RELACIONAMENTO</p><h1 id="messages-title">Mensagens prontas</h1><p class="subtitle">Um jeitinho mais fácil de manter a conversa com seus clientes.</p></div></div>
+          <div class="message-intro"><span class="message-intro-icon">✳</span><div><strong>Feitas para o seu negócio</strong><p>Edite e copie as mensagens. Para enviar, abra o WhatsApp e cole no chat desejado.</p></div></div>
+          <div class="message-grid" id="message-cards"></div>
+        </section>
+
+        <section class="page" id="page-avancado" aria-labelledby="advanced-title">
+          <div class="page-heading"><div><p class="eyebrow">GESTÃO COMPLETA</p><h1 id="advanced-title">Modo avançado</h1><p class="subtitle">Receitas, lotes, despesas e indicadores, armazenados neste dispositivo.</p></div></div>
+          <div class="advanced-tabs" role="tablist" aria-label="Recursos avançados"><button class="advanced-tab selected" role="tab" aria-selected="true" data-advanced-tab="recipes">Receitas e insumos</button><button class="advanced-tab" role="tab" aria-selected="false" data-advanced-tab="batches">Lotes e validade</button><button class="advanced-tab" role="tab" aria-selected="false" data-advanced-tab="costs">Custos e margens</button><button class="advanced-tab" role="tab" aria-selected="false" data-advanced-tab="crm">Clientes</button></div>
+          <div id="advanced-content"></div>
+          <p class="feature-note">Estes controles são locais e informativos; não substituem registros fiscais, contabilidade ou controles sanitários exigidos para seu negócio.</p>
+        </section>
+
+        <section class="page" id="page-configuracoes" aria-labelledby="settings-title">
+          <div class="page-heading"><div><p class="eyebrow">SEU ESPAÇO</p><h1 id="settings-title">Configurações</h1><p class="subtitle">Deixe o Prato & Prosa com a cara do seu negócio.</p></div></div>
+          <div class="settings-layout">
+            <nav class="settings-nav" aria-label="Seções de configurações"><a class="settings-tab selected" href="#dados">Dados do negócio</a><a class="settings-tab" href="#aparencia">Aparência</a><a class="settings-tab" href="#seguranca">Conta e dados</a></nav>
+            <div class="settings-content">
+              <form class="panel settings-card" id="business-form"><div class="panel-heading"><div><h2>Sobre seu negócio</h2><p>Essas informações ajudam a personalizar suas mensagens.</p></div></div><div class="form-grid"><label class="field full-field">Nome do negócio<input name="businessName" maxlength="60" placeholder="Ex.: Cantinho da Ana" required></label><label class="field">Seu nome<input name="ownerName" maxlength="60" placeholder="Como podemos te chamar?"></label><label class="field">WhatsApp<input name="whatsapp" type="tel" inputmode="tel" maxlength="20" placeholder="(11) 99999-9999"></label><label class="field">Chave Pix<input name="pix" maxlength="120" placeholder="Sua chave Pix (opcional)"></label><label class="field">Horário de atendimento<input name="hours" maxlength="100" placeholder="Ex.: Seg a sáb, 10h às 20h"></label><div class="field full-field image-setting"><label class="field">Logo do negócio (opcional)<input name="logo" type="file" accept="image/png,image/jpeg,image/webp"><small class="field-help">PNG, JPG ou WebP, até 1 MB. Fica neste dispositivo.</small></label><div class="image-preview logo-preview" id="logo-preview" hidden></div></div><div class="field full-field image-setting"><label class="field">Capa do negócio (opcional)<input name="cover" type="file" accept="image/png,image/jpeg,image/webp"><small class="field-help">Aparece no início do app. PNG, JPG ou WebP, até 1 MB.</small></label><div class="image-preview cover-setting-preview" id="settings-cover-preview" hidden></div></div></div><div class="form-actions"><span class="form-feedback" id="business-feedback" role="status"></span><button class="button button-primary" type="submit">Salvar alterações</button></div></form>
+              <section class="panel settings-card" id="aparencia"><div class="panel-heading"><div><h2>Aparência</h2><p>Escolha uma cor que tenha a cara da sua marca.</p></div></div><div class="theme-options" id="theme-options" role="radiogroup" aria-label="Tema de cores"></div><div class="setting-row"><span><strong>Modo de exibição</strong><small>Escolha como o app aparece neste dispositivo.</small></span><select id="color-mode" aria-label="Modo de exibição"><option value="light">Claro</option><option value="dark">Escuro</option><option value="system">Automático (sistema)</option></select></div></section>
+              <section class="panel settings-card"><div class="panel-heading"><div><h2>Modo de gestão</h2><p>Comece pelo essencial e avance no seu ritmo.</p></div></div><div class="mode-choice"><div class="mode-choice-icon">✦</div><div><strong>Modo simples</strong><p>Produtos prontos, pedidos e faturamento bruto.</p></div><span class="active-pill">ATIVO</span></div><div class="mode-choice advanced-choice"><div class="mode-choice-icon">✧</div><div><strong>Modo avançado</strong><p>Receitas, insumos, lotes e validade PVPS, custos, margens e indicadores de clientes.</p></div><button class="button button-secondary" id="advanced-toggle" type="button">Ativar</button></div><p class="small-note" id="advanced-note"></p></section>
+              <section class="panel settings-card" id="seguranca"><div class="panel-heading"><div><h2>Conta e dados</h2><p>Transparência sobre onde suas informações ficam.</p></div></div><div class="security-notice"><span>⌂</span><div><strong>Dados salvos só neste dispositivo</strong><p>Este app não tem servidor. Pedidos, produtos e configurações ficam no armazenamento local do navegador e não são sincronizados nem protegidos por uma conta.</p></div></div><div class="security-notice oauth-notice"><span>♙</span><div><strong>Google e autenticação em duas etapas</strong><p>Login Google OAuth 2.0 com MFA e sincronização segura precisam de um backend, credenciais e configuração no provedor. Não estão habilitados; não existe login simulado e nenhuma credencial é solicitada por esta versão.</p></div></div><div class="data-actions"><button class="button button-secondary" data-action="export-data">Baixar cópia dos dados</button><label class="button button-secondary import-label">Importar cópia<input type="file" id="import-file" accept="application/json,.json" hidden></label><button class="button button-danger" data-action="clear-data">Apagar dados locais</button></div><p class="small-note">Instalável e publicável no GitHub Pages. Exporte uma cópia antes de limpar os dados ou trocar de navegador.</p></section>
+            </div>
+          </div>
+        </section>
+      </main>
+      <nav class="mobile-nav" aria-label="Navegação inferior"><a href="#inicio" data-route="inicio" class="active"><span>⌂</span>Início</a><a href="#pedidos" data-route="pedidos"><span>▤</span>Pedidos</a><a href="#estoque" data-route="estoque"><span>▦</span>Estoque</a><a href="#financeiro" data-route="financeiro"><span>◷</span>Finanças</a><a href="#configuracoes" data-route="configuracoes"><span>☼</span>Mais</a></nav>
+    </div>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog class="app-dialog" id="app-dialog" aria-labelledby="dialog-title"><div id="dialog-content"></div></dialog>
+</body>
+</html>
