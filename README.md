@@ -17,6 +17,8 @@ Abra o endereço publicado em um navegador compatível e use **Instalar aplicati
 
 No primeiro acesso, o onboarding permite começar com listas vazias ou manter os dados demonstrativos fictícios e editáveis. O onboarding e as configurações aceitam logo e capa em PNG, JPG ou WebP de até 1 MB; as imagens são guardadas no dispositivo e incluídas na cópia JSON. Os painéis incluem um gráfico de faturamento semanal que acompanha as vendas registradas. A tipografia foi ampliada para leitura mais confortável em celular e desktop. As mensagens de WhatsApp podem ser personalizadas e copiadas para envio manual; não há envio automático. O modo avançado oferece registros locais de receitas/insumos, lotes e validade, despesas e indicadores básicos. Ao produzir uma receita, insumos com lotes cadastrados só são descontados de lotes não vencidos, por ordem de validade; saldo insuficiente bloqueia a produção sem baixas parciais. Mantenha os totais dos insumos alinhados aos lotes cadastrados. O app não substitui contabilidade, controle fiscal ou sanitário.
 
+As configurações também exibem uma opção de contribuição voluntária ao desenvolvedor por Pix. A chave é pública para esse fim; o envio é iniciado e confirmado pelo próprio doador no aplicativo do banco.
+
 ## Como salvar os dados na conta de cada usuário
 
 Hoje os dados ficam no navegador do aparelho (`localStorage`), não na conta GitHub nem em um banco compartilhado. O Pages serve apenas os arquivos estáticos e o repositório é público; portanto, nunca se deve usar commits, arquivos JSON publicados ou tabelas no GitHub para guardar pedidos, dados de clientes, telefone ou chave Pix.

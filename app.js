@@ -404,6 +404,16 @@
       case "adjust-ingredient":openForm("adjustIngredient",id);break;
       case "produce-recipe":produceRecipe(id);break;
       case "use-batch":useBatch(id);break;
+      case "copy-donation-pix":{
+        const key=$("#donation-pix-key").textContent;
+        try{await navigator.clipboard.writeText(key);notify("Chave Pix copiada. Obrigado pelo apoio!");}
+        catch{
+          const selection=window.getSelection(),range=document.createRange(),display=$("#donation-pix-key");
+          range.selectNodeContents(display);selection.removeAllRanges();selection.addRange(range);
+          notify("Chave selecionada. Copie e cole no app do seu banco.");
+        }
+        break;
+      }
       case "delete-product":{const product=state.products.find(p=>p.id===id);if(product&&confirm(`Remover ${product.name} do estoque?`)){state.products=state.products.filter(p=>p.id!==id);persist();renderAll();notify("Produto removido.");}break;}
       case "delete-client":{const client=state.clients.find(c=>c.id===id);if(client&&confirm(`Remover ${client.name} da lista de clientes?`)){state.clients=state.clients.filter(c=>c.id!==id);persist();renderAll();notify("Cliente removido.");}break;}
       case "delete-expense":{const expense=state.expenses.find(item=>item.id===id);if(expense&&confirm(`Remover a despesa ${expense.description}?`)){state.expenses=state.expenses.filter(item=>item.id!==id);persist();advancedContent("costs");notify("Despesa removida.");}break;}
