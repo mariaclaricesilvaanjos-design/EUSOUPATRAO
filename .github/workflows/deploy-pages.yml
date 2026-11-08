@@ -25,7 +25,7 @@ jobs:
       - name: Preparar arquivos estáticos
         run: |
           mkdir -p _site/assets
-          cp index.html styles.css app.js manifest.webmanifest sw.js _site/
+          cp index.html styles.css app.js supabase-config.js manifest.webmanifest sw.js _site/
           cp assets/icon.svg assets/icon-192.png assets/icon-512.png _site/assets/
       - name: Empacotar site
         uses: actions/upload-pages-artifact@v3

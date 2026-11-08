@@ -55,6 +55,8 @@
   const clone = data=>JSON.parse(JSON.stringify(data));
   const firstVisit=(()=>{try{return localStorage.getItem(STORAGE_KEY)===null;}catch{return false;}})();
   let state=loadState(),orderFilter="todos",advancedTab="recipes",toastTimer;
+  const CLOUD_REVISION_KEY="prato-prosa-cloud-revision-v1";
+  let supabaseClient=null,supabaseModulePromise=null,cloudUser=null,cloudRevision=null,cloudSyncEnabled=false,cloudMfaRequired=false,cloudMfaMode="enroll",cloudConnecting=false,cloudSaveTimer=null,cloudSaveQueue=Promise.resolve(),suppressCloudSave=false,cloudStatusText="Dados salvos neste dispositivo",cloudDetailText="Entre para configurar a sincronização Supabase.";
 
   function loadState(){
     try{
@@ -65,11 +67,219 @@
     }catch(error){console.error("Não foi possível ler os dados locais.",error);return clone(seed);}
   }
   function persist(){
-    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));return true;}
+    try{localStorage.setItem(STORAGE_KEY,JSON.stringify(state));if(!suppressCloudSave)scheduleCloudSave();return true;}
     catch(error){console.error("Não foi possível salvar os dados locais.",error);notify("Não foi possível salvar. Verifique o espaço disponível no navegador.");return false;}
   }
   function notify(message){
     const toast=$("#toast");toast.textContent=message;toast.classList.add("show");clearTimeout(toastTimer);toastTimer=setTimeout(()=>toast.classList.remove("show"),2800);
+  }
+  function cloudConfig(){
+    const config=window.PRATO_PROSA_SUPABASE;
+    return config&&/^https:\/\/[a-z0-9-]+\.supabase\.co\/?$/i.test(config.url||"")&&typeof config.anonKey==="string"&&config.anonKey.length>20?config:null;
+  }
+  function updateCloudUI(status,detail){
+    const configured=Boolean(cloudConfig());
+    if(status)cloudStatusText=status;
+    if(detail)cloudDetailText=detail;
+    $("#cloud-status").textContent=cloudStatusText;
+    $("#cloud-account-email").textContent=cloudDetailText;
+    $("#cloud-status-dot").classList.toggle("cloud-connected",Boolean(cloudUser&&cloudSyncEnabled));
+    $("#cloud-signin").hidden=!configured||Boolean(cloudUser);
+    $("#cloud-mfa-enroll").hidden=!cloudMfaRequired;
+    $("#cloud-mfa-enroll").dataset.action=cloudMfaMode==="challenge"?"cloud-mfa-challenge":"cloud-mfa-enroll";
+    $("#cloud-mfa-enroll").textContent=cloudMfaMode==="challenge"?"Digitar código de verificação":"Configurar verificação em duas etapas";
+    $("#cloud-upload").hidden=!cloudUser||cloudSyncEnabled||cloudMfaRequired;
+    $("#cloud-signout").hidden=!cloudUser;
+    $("#cloud-sync-note").textContent=!configured
+      ?"O projeto Supabase ainda não está configurado. O app continua salvando localmente; adicione Project URL e chave publicável em supabase-config.js. Nunca use a chave service_role aqui."
+      :cloudUser
+        ?"O app mantém dados locais e sincroniza uma cópia privada da conta após a escolha explícita. Conflitos entre dispositivos pausam a sincronização para evitar sobrescrita silenciosa."
+        :"Conecte um projeto Supabase configurado. A chave publicável é apropriada para o navegador quando a migração com RLS estiver aplicada.";
+  }
+  async function getSupabaseClient(){
+    const config=cloudConfig();
+    if(!config)throw new Error("Supabase não está configurado. Adicione a URL do projeto e a chave publicável em supabase-config.js.");
+    if(supabaseClient)return supabaseClient;
+    if(!supabaseModulePromise)supabaseModulePromise=import("https://esm.sh/@supabase/supabase-js@2");
+    const {createClient}=await supabaseModulePromise;
+    supabaseClient=createClient(config.url.replace(/\/$/,""),config.anonKey,{auth:{persistSession:true,autoRefreshToken:true,detectSessionInUrl:true}});
+    supabaseClient.auth.onAuthStateChange((event,session)=>{
+      if(event==="INITIAL_SESSION")return;
+      window.setTimeout(()=>handleCloudAuthChange(session?.user||null),0);
+    });
+    return supabaseClient;
+  }
+  async function handleCloudAuthChange(user){
+    if(!user){
+      cloudUser=null;cloudRevision=null;cloudSyncEnabled=false;cloudMfaRequired=false;cloudMfaMode="enroll";clearTimeout(cloudSaveTimer);
+      updateCloudUI("Sessão encerrada","Seus dados locais continuam disponíveis.");return;
+    }
+    try{await connectCloudUser(user);}
+    catch(error){
+      console.error("Não foi possível verificar a conta Supabase.",error);
+      updateCloudUI("Não foi possível verificar a conta",error.message);
+      notify("A conta foi autenticada, mas a verificação de segurança falhou.");
+    }
+  }
+  async function connectCloudUser(user){
+    if(cloudConnecting&&cloudUser?.id===user.id)return;
+    cloudConnecting=true;cloudUser=user;cloudSyncEnabled=false;cloudMfaRequired=false;
+    try{await loadCloudUser(user);}finally{cloudConnecting=false;}
+  }
+  async function loadCloudUser(user){
+    const client=await getSupabaseClient();
+    updateCloudUI("Verificando segurança da conta",user.email||"Conta autenticada");
+    const {data:assurance,error:assuranceError}=await client.auth.mfa.getAuthenticatorAssuranceLevel();
+    if(assuranceError)throw assuranceError;
+    if(assurance.currentLevel!=="aal2"){
+      const {data:factors,error:factorsError}=await client.auth.mfa.listFactors();
+      if(factorsError)throw factorsError;
+      const verifiedFactor=factors.totp.find(factor=>factor.status==="verified");
+      if(verifiedFactor){
+        cloudMfaRequired=true;cloudMfaMode="challenge";
+        updateCloudUI("Verificação em duas etapas necessária","Digite o código do seu aplicativo autenticador.");
+        await challengeCloudMfa(verifiedFactor);
+      }else{
+        cloudMfaRequired=true;cloudMfaMode="enroll";
+        updateCloudUI("Configure a verificação em duas etapas","A sincronização só é liberada após verificar um aplicativo autenticador.");
+      }
+      return;
+    }
+    updateCloudUI("Verificando dados na nuvem",user.email||"Conta autenticada");
+    const {data,error}=await client.from("user_app_state").select("payload,revision,updated_at").eq("user_id",user.id).maybeSingle();
+    if(error){
+      console.error("Não foi possível ler os dados do Supabase.",error);
+      cloudRevision=null;updateCloudUI("Conta conectada; banco ainda não disponível",error.message);
+      notify("Não foi possível acessar a tabela. Aplique a migração Supabase e confira as policies RLS.");return;
+    }
+    const hasLocal=localStorage.getItem(STORAGE_KEY)!==null;
+    let syncMarker=null;
+    try{syncMarker=JSON.parse(localStorage.getItem(CLOUD_REVISION_KEY)||"null");}catch{}
+    const knownRevision=syncMarker?.userId===user.id?Number(syncMarker.revision):0;
+    if(!data){
+      cloudRevision=null;
+      updateCloudUI("Nenhuma cópia na nuvem",hasLocal?"Envie os dados deste dispositivo quando estiver pronto.":"A conta está pronta para receber os primeiros dados.");
+      return;
+    }
+    if(hasLocal&&knownRevision!==Number(data.revision)){
+      const useCloud=confirm("Há dados salvos na nuvem e uma cópia diferente neste dispositivo. OK: manter uma cópia local de segurança e carregar os dados da nuvem. Cancelar: manter os dados deste dispositivo; a sincronização ficará pausada até você escolher enviá-los.");
+      if(!useCloud){
+        cloudRevision=Number(data.revision);
+        updateCloudUI("Conectado; versões diferentes","Os dados locais foram mantidos. Use “Enviar dados deste dispositivo” somente se quiser substituir a cópia da nuvem.");
+        return;
+      }
+      try{
+        localStorage.setItem(`${STORAGE_KEY}-backup-${Date.now()}`,localStorage.getItem(STORAGE_KEY));
+      }catch(error){
+        console.error("Não foi possível preservar os dados locais antes da restauração.",error);
+        updateCloudUI("Restauração cancelada","Não foi possível criar uma cópia local de segurança.");
+        notify("A restauração foi cancelada para proteger os dados deste dispositivo.");return;
+      }
+    }
+    if(!hasLocal||knownRevision!==Number(data.revision)){
+      try{state=validateImport({data:data.payload});}
+      catch(error){
+        console.error("Os dados recebidos do Supabase são inválidos.",error);
+        updateCloudUI("Dados na nuvem inválidos","Nada foi substituído neste dispositivo.");
+        notify("A cópia do Supabase não passou na validação. Os dados locais foram preservados.");return;
+      }
+      suppressCloudSave=true;
+      try{persist();}finally{suppressCloudSave=false;}
+      renderAll();
+    }
+    cloudRevision=Number(data.revision);cloudSyncEnabled=true;
+    localStorage.setItem(CLOUD_REVISION_KEY,JSON.stringify({userId:user.id,revision:cloudRevision}));
+    updateCloudUI("Sincronizado com Supabase",user.email||"Conta autenticada");
+  }
+  async function initializeCloud(){
+    if(!cloudConfig()){updateCloudUI();return;}
+    updateCloudUI("Verificando sessão Supabase","Conectando com segurança…");
+    try{
+      const client=await getSupabaseClient(),{data,error}=await client.auth.getSession();
+      if(error)throw error;
+      if(data.session)await connectCloudUser(data.session.user);
+      else updateCloudUI("Dados salvos neste dispositivo","Entre com Google para conectar à sua conta.");
+    }catch(error){
+      console.error("Não foi possível inicializar o Supabase.",error);
+      updateCloudUI("Supabase indisponível","Confira a conexão, a URL e a chave publicável.");
+      notify("Não foi possível conectar ao Supabase. Os dados locais continuam disponíveis.");
+    }
+  }
+  function scheduleCloudSave(){
+    if(!cloudSyncEnabled||!cloudUser)return;
+    clearTimeout(cloudSaveTimer);
+    cloudSaveTimer=setTimeout(()=>saveCloudState(false),700);
+  }
+  function saveCloudState(explicit){
+    if(!cloudUser||!supabaseClient)return Promise.resolve(false);
+    cloudSaveQueue=cloudSaveQueue.then(async()=>{
+      if(!cloudUser||(!cloudSyncEnabled&&!explicit))return false;
+      const snapshot=clone(state),revision=cloudRevision;
+      const {data,error}=await supabaseClient.rpc("save_my_app_state",{p_payload:snapshot,p_expected_revision:revision});
+      if(error){
+        console.error("A sincronização Supabase falhou.",error);
+        cloudSyncEnabled=false;
+        const conflict=error.code==="40001"||/changed on another device/i.test(error.message||"");
+        updateCloudUI(conflict?"Conflito entre dispositivos":"Falha na sincronização",conflict?"Outra sessão alterou os dados. Recarregue e escolha a versão que deseja manter.":error.message);
+        notify(conflict?"A sincronização foi pausada para proteger os dados. Recarregue antes de escolher uma versão.":"Os dados continuam salvos neste dispositivo; não foi possível enviá-los.");
+        return false;
+      }
+      cloudRevision=Number(data);cloudSyncEnabled=true;
+      localStorage.setItem(CLOUD_REVISION_KEY,JSON.stringify({userId:cloudUser.id,revision:cloudRevision}));
+      updateCloudUI("Sincronizado com Supabase",cloudUser.email||"Conta autenticada");
+      if(JSON.stringify(snapshot)!==JSON.stringify(state))scheduleCloudSave();
+      return true;
+    }).catch(error=>{
+      console.error("Erro inesperado ao sincronizar com Supabase.",error);
+      cloudSyncEnabled=false;updateCloudUI("Falha na sincronização",error.message);
+      notify("A sincronização falhou. Seus dados locais foram mantidos.");return false;
+    });
+    return cloudSaveQueue;
+  }
+  async function signInToCloud(){
+    const client=await getSupabaseClient();
+    const {error}=await client.auth.signInWithOAuth({provider:"google",options:{redirectTo:`${location.origin}${location.pathname}`}});
+    if(error)throw error;
+  }
+  async function signOutFromCloud(){
+    clearTimeout(cloudSaveTimer);
+    await cloudSaveQueue;
+    const client=await getSupabaseClient(),{error}=await client.auth.signOut();
+    if(error)throw error;
+    cloudUser=null;cloudRevision=null;cloudSyncEnabled=false;cloudMfaRequired=false;cloudMfaMode="enroll";
+    updateCloudUI("Sessão encerrada","Seus dados locais continuam disponíveis.");
+  }
+  function showMfaDialog({mode,factorId,challengeId,qrCode,secret}){
+    const setup=mode==="enroll";
+    $("#dialog-content").innerHTML=`<div class="dialog-inner"><div class="dialog-heading"><div><p class="eyebrow">SEGURANÇA DA CONTA</p><h2 id="dialog-title">${setup?"Ative a verificação em duas etapas":"Confirme sua identidade"}</h2><p>${setup?"Leia o QR code no aplicativo autenticador e informe o código de 6 dígitos.":"Informe o código de 6 dígitos do seu aplicativo autenticador."}</p></div><button class="dialog-close" type="button" data-action="close-dialog" aria-label="Fechar">×</button></div>${setup?'<img id="cloud-mfa-qr" class="cloud-mfa-qr" alt="QR code para configurar o aplicativo autenticador"><p class="small-note">Se não puder ler o QR code, use esta chave manual:</p><code id="cloud-mfa-secret" class="cloud-mfa-secret"></code>':""}<form class="dialog-form" id="cloud-mfa-form" data-mode="${setup?"enroll":"challenge"}" data-factor-id="${escapeHtml(factorId)}" ${challengeId?`data-challenge-id="${escapeHtml(challengeId)}"`:""}><label class="field">Código de verificação<input name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6}" minlength="6" maxlength="6" required aria-label="Código de verificação com seis dígitos"></label><div class="dialog-actions"><button class="button button-secondary" type="button" data-action="close-dialog">Cancelar</button><button class="button button-primary" type="submit">Verificar</button></div></form></div>`;
+    if(setup){$("#cloud-mfa-qr").src=qrCode;$("#cloud-mfa-secret").textContent=secret;}
+    const dialog=$("#app-dialog");dialog.showModal();$('input[name="code"]',dialog).focus();
+  }
+  async function challengeCloudMfa(factor){
+    const client=await getSupabaseClient(),{data,error}=await client.auth.mfa.challenge({factorId:factor.id});
+    if(error)throw error;
+    showMfaDialog({mode:"challenge",factorId:factor.id,challengeId:data.id});
+  }
+  async function enrollCloudMfa(){
+    const client=await getSupabaseClient(),{data,error}=await client.auth.mfa.enroll({factorType:"totp",friendlyName:"Prato & Prosa"});
+    if(error)throw error;
+    showMfaDialog({mode:"enroll",factorId:data.id,qrCode:data.totp.qr_code,secret:data.totp.secret});
+  }
+  async function verifyCloudMfa(form){
+    const client=await getSupabaseClient(),formData=new FormData(form),code=String(formData.get("code")||"").trim(),factorId=form.dataset.factorId;
+    let challengeId=form.dataset.challengeId;
+    if(!challengeId){
+      const challenge=await client.auth.mfa.challenge({factorId});
+      if(challenge.error)throw challenge.error;
+      challengeId=challenge.data.id;
+    }
+    const {error}=await client.auth.mfa.verify({factorId,challengeId,code});
+    if(error)throw error;
+    $("#app-dialog").close();cloudMfaRequired=false;
+    const sessionResult=await client.auth.getSession();
+    if(sessionResult.error)throw sessionResult.error;
+    if(sessionResult.data.session)await connectCloudUser(sessionResult.data.session.user);
+    notify("Verificação em duas etapas concluída.");
   }
   const todayKey=()=>new Date().toDateString();
   const todaysOrders=()=>state.orders.filter(order=>new Date(order.date).toDateString()===todayKey());
@@ -172,6 +382,7 @@
     $("#advanced-toggle").textContent=state.advanced?"Desativar":"Ativar";
     $("#advanced-note").textContent=state.advanced?"Modo avançado ativo. Os controles não são integrados a sistemas fiscais ou contábeis.":"Ative para habilitar receitas, lotes com PVPS, custos e indicadores locais.";
     $(".advanced-link").hidden=!state.advanced;
+    updateCloudUI();
   }
   function advancedContent(tab=advancedTab){
     const content=$("#advanced-content");if(!content)return;
@@ -394,6 +605,34 @@
       case "new-batch":openForm("batch");break;
       case "new-expense":openForm("expense");break;
       case "show-donation":showDonationDialog();break;
+      case "cloud-signin":
+        try{await signInToCloud();}
+        catch(error){console.error("Não foi possível iniciar o login Google pelo Supabase.",error);notify(`Não foi possível iniciar o login: ${error.message}`);}
+        break;
+      case "cloud-signout":
+        try{await signOutFromCloud();notify("Sessão encerrada. Os dados locais foram mantidos.");}
+        catch(error){console.error("Não foi possível encerrar a sessão Supabase.",error);notify(`Não foi possível encerrar a sessão: ${error.message}`);}
+        break;
+      case "cloud-mfa-enroll":
+        try{await enrollCloudMfa();}
+        catch(error){console.error("Não foi possível iniciar a verificação em duas etapas.",error);notify(`Não foi possível configurar MFA: ${error.message}`);}
+        break;
+      case "cloud-mfa-challenge":
+        try{
+          const client=await getSupabaseClient(),{data,error}=await client.auth.mfa.listFactors();
+          if(error)throw error;
+          const factor=data.totp.find(item=>item.status==="verified");
+          if(!factor)throw new Error("Nenhum aplicativo autenticador verificado foi encontrado.");
+          await challengeCloudMfa(factor);
+        }catch(error){console.error("Não foi possível solicitar o código MFA.",error);notify(`Não foi possível solicitar o código: ${error.message}`);}
+        break;
+      case "cloud-upload":
+        if(!cloudUser)break;
+        if(cloudRevision!==null&&!confirm("Substituir a cópia Supabase desta conta pelos dados deste dispositivo? Essa ação não altera outros dados locais."))break;
+        cloudSyncEnabled=true;
+        updateCloudUI("Enviando dados para Supabase","Mantendo uma cópia local neste dispositivo.");
+        await saveCloudState(true);
+        break;
       case "close-dialog":$("#app-dialog").close();break;
       case "remove-image":{
         const key=action.dataset.image==="capa"?"cover":"logo";
@@ -436,6 +675,12 @@
     }
   });
   document.addEventListener("submit",async event=>{
+    if(event.target.id==="cloud-mfa-form"){
+      event.preventDefault();
+      try{await verifyCloudMfa(event.target);}
+      catch(error){console.error("A verificação em duas etapas falhou.",error);notify(`Não foi possível verificar o código: ${error.message}`);}
+      return;
+    }
     if(event.target.id==="entity-form"){event.preventDefault();onEntitySubmit(event.target);return;}
     if(event.target.id==="onboarding-form"){
       event.preventDefault();const form=event.target,name=String(new FormData(form).get("businessName")||"").trim();
@@ -501,6 +746,7 @@
   });
   window.addEventListener("hashchange",()=>navigate(location.hash.slice(1),true));
   renderAll();navigate(routeNames[location.hash.slice(1)]?location.hash.slice(1):"inicio",true);
+  initializeCloud();
   if(firstVisit&&!state.onboardingDone)showOnboarding();
   if("serviceWorker" in navigator&&location.protocol!=="file:")window.addEventListener("load",()=>navigator.serviceWorker.register("./sw.js").catch(error=>{console.error("Não foi possível ativar o modo offline.",error);notify("Não foi possível ativar o modo offline neste navegador.");}));
 })();

@@ -138,3 +138,14 @@ main{max-width:none;padding:22px 18px 34px}
   .donation-spotlight-copy{flex-basis:calc(100% - 54px);align-self:center}
   .donation-spotlight-button{width:100%;justify-content:center;white-space:normal}
 }
+.cloud-account-card{padding:14px;border:1px solid var(--line);border-radius:11px;background:var(--surface-soft)}
+.cloud-account-status{display:flex;align-items:flex-start;gap:11px}
+.cloud-account-status .status-dot{flex:none;margin:7px 0 0;background:var(--muted);box-shadow:none}
+.cloud-account-status .status-dot.cloud-connected{background:#30b779;box-shadow:0 0 0 4px #30b77922}
+.cloud-account-status>span:last-child{display:grid;gap:3px}
+.cloud-account-status strong{font-size:15px}
+.cloud-account-status small{font-size:13px;color:var(--muted);overflow-wrap:anywhere}
+.cloud-account-actions{margin:12px 0 5px}
+.cloud-account-actions[hidden],.cloud-account-actions button[hidden]{display:none}
+.cloud-mfa-qr{display:block;width:min(220px,100%);height:auto;margin:0 auto 13px;border:1px solid var(--line);border-radius:10px;background:#fff}
+.cloud-mfa-secret{display:block;padding:10px;border:1px solid var(--line);border-radius:8px;background:var(--surface-soft);color:var(--ink);font:13px/1.5 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere;user-select:all}
