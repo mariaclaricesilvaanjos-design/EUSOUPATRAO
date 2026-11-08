@@ -1,6 +1,7 @@
 (() => {
   "use strict";
   const STORAGE_KEY = "prato-prosa-data-v1";
+  const donationPixPayload = "00020126330014br.gov.bcb.pix0111015619225015204000053039865802BR5921FABIO SILVA DOS ANJOS6009Sao Paulo62290525REC6AF09CB01264A2203363336304C140";
   const palettes = {blue:["Azul índigo","#6658d3"],green:["Verde esmeralda","#2f9676"],violet:["Roxo violeta","#8156c8"],coral:["Laranja coral","#de7852"],rose:["Rosa carmim","#c84f79"],graphite:["Cinza grafite","#596174"]};
   const templates = [
     {key:"greeting",title:"Boas-vindas",icon:"☀",hint:"Para receber um novo cliente.",text:"Oi, {cliente}! Que bom ter você por aqui 💛\n\nNo {negocio}, tudo é preparado com carinho. Como posso ajudar?"},
@@ -367,6 +368,11 @@
     $("#dialog-content").innerHTML=`<div class="dialog-inner"><div class="dialog-heading"><div><p class="eyebrow">BEM-VINDA AO PRATO & PROSA</p><h2 id="dialog-title">Vamos conhecer seu negócio</h2><p>Personalize seu espaço. Os dados ficam só neste dispositivo. Os registros iniciais são exemplos fictícios.</p></div></div><form class="dialog-form" id="onboarding-form"><div class="form-grid">${field("Nome do negócio","businessName",{required:true,placeholder:"Ex.: Delícias da Ju"})}${field("Seu nome","ownerName",{placeholder:"Como podemos te chamar?"})}${field("WhatsApp","whatsapp",{type:"tel",placeholder:"(11) 99999-9999"})}${field("Chave Pix","pix",{placeholder:"Opcional"})}${field("Horário de atendimento","hours",{placeholder:"Ex.: Seg a sáb, 10h às 20h"})}<div class="field full-field image-setting"><label class="field">Logo do negócio (opcional)<input name="logo" type="file" accept="image/png,image/jpeg,image/webp"><small class="field-help">PNG, JPG ou WebP, até 1 MB.</small></label><div class="image-preview logo-preview" id="onboarding-logo-preview" hidden></div></div><div class="field full-field image-setting"><label class="field">Capa do negócio (opcional)<input name="cover" type="file" accept="image/png,image/jpeg,image/webp"><small class="field-help">Aparece no início do app. PNG, JPG ou WebP, até 1 MB.</small></label><div class="image-preview cover-setting-preview" id="onboarding-cover-preview" hidden></div></div><label class="check-field full-field"><input name="emptyStart" type="checkbox" checked><span>Começar com listas vazias, sem registros de demonstração</span></label></div><div class="dialog-actions"><button class="button button-secondary" type="button" data-action="skip-onboarding">Usar dados de exemplo</button><button class="button button-primary" type="submit">Começar</button></div></form></div>`;
     dialog.showModal();$("input",dialog)?.focus();
   }
+  function showDonationDialog(){
+    const dialog=$("#app-dialog");
+    $("#dialog-content").innerHTML=`<div class="dialog-inner donation-dialog-content"><div class="dialog-heading"><div><p class="eyebrow">APOIO VOLUNTÁRIO</p><h2 id="dialog-title">Ajude o desenvolvedor</h2><p>Copie o código Pix e cole no app do seu banco.</p></div><button class="dialog-close" type="button" data-action="close-dialog" aria-label="Fechar">×</button></div><label class="field donation-code-label">Pix Copia e Cola<textarea id="donation-pix-code" class="donation-payload" rows="4" readonly spellcheck="false" aria-label="Código Pix Copia e Cola">${donationPixPayload}</textarea></label><p class="small-note">Destinatário: <strong>Fábio Silva dos Anjos</strong>. A contribuição é opcional; confira o nome no banco antes de confirmar.</p><div class="dialog-actions"><button class="button button-secondary" type="button" data-action="close-dialog">Fechar</button><button class="button button-primary" type="button" data-action="copy-donation-pix">Copiar código Pix</button></div></div>`;
+    dialog.showModal();
+  }
   document.addEventListener("click",async event=>{
     const route=event.target.closest("[data-route]");
     if(route){event.preventDefault();navigate(route.dataset.route);return;}
@@ -387,6 +393,7 @@
       case "new-ingredient":openForm("ingredient");break;
       case "new-batch":openForm("batch");break;
       case "new-expense":openForm("expense");break;
+      case "show-donation":showDonationDialog();break;
       case "close-dialog":$("#app-dialog").close();break;
       case "remove-image":{
         const key=action.dataset.image==="capa"?"cover":"logo";
@@ -405,12 +412,12 @@
       case "produce-recipe":produceRecipe(id);break;
       case "use-batch":useBatch(id);break;
       case "copy-donation-pix":{
-        const key=$("#donation-pix-key").textContent;
-        try{await navigator.clipboard.writeText(key);notify("Chave Pix copiada. Obrigado pelo apoio!");}
+        const code=$("#donation-pix-code");
+        if(!code)break;
+        code.focus();code.select();
+        try{await navigator.clipboard.writeText(donationPixPayload);notify("Código Pix copiado. Cole no app do seu banco. Obrigado pelo apoio!");}
         catch{
-          const selection=window.getSelection(),range=document.createRange(),display=$("#donation-pix-key");
-          range.selectNodeContents(display);selection.removeAllRanges();selection.addRange(range);
-          notify("Chave selecionada. Copie e cole no app do seu banco.");
+          notify("Código Pix selecionado. Copie e cole no app do seu banco.");
         }
         break;
       }

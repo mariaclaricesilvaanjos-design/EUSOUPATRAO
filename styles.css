@@ -119,3 +119,24 @@ main{max-width:none;padding:22px 18px 34px}
   #page-inicio .dashboard-chart{padding:13px 11px}
   .sidebar{background:#063b2c}
 }
+.donation-spotlight{display:flex;align-items:center;gap:14px;margin:0 0 15px;padding:13px 16px;border:1px solid #d6e9dc;border-radius:14px;background:linear-gradient(105deg,#eaf6ee,#fffaf0);box-shadow:0 5px 16px #1737280b}
+.donation-spotlight-icon{width:42px;height:42px;display:grid;place-items:center;flex:none;border-radius:13px;background:#fff0cd;color:#ab6c11;font-size:27px}
+.donation-spotlight-copy{display:grid;gap:2px;flex:1;min-width:0}
+.donation-spotlight-copy strong{font-size:16px;color:#174c37}
+.donation-spotlight-copy span{font-size:13px;color:#587565}
+.donation-spotlight-button{min-height:40px;background:#087d4c;color:#fff;white-space:nowrap;box-shadow:0 4px 11px #087d4c28}
+.donation-spotlight-button:hover{background:#066a40}
+.donation-spotlight-button span{font-size:18px;margin-left:5px}
+:root[data-mode=dark] .donation-spotlight{border-color:#344b3b;background:linear-gradient(105deg,#263f32,#302d27)}
+:root[data-mode=dark] .donation-spotlight-copy strong{color:#e2f5eb}
+:root[data-mode=dark] .donation-spotlight-copy span{color:#b4c9bd}
+.donation-dialog-content .dialog-heading{margin-bottom:13px}
+.donation-code-label{margin-top:5px}
+.donation-payload{display:block;width:100%;margin-top:5px;padding:11px;border:1px solid var(--line);border-radius:9px;background:var(--surface-soft);color:var(--ink);font:13px/1.55 ui-monospace,SFMono-Regular,Consolas,monospace;overflow-wrap:anywhere;resize:vertical;user-select:all;-webkit-user-select:all}
+.donation-dialog-content .small-note{font-size:13px}
+:root[data-mode=dark] .donation-spotlight-button{background:#12915e;color:#fff}
+@media(max-width:760px){
+  .donation-spotlight{align-items:flex-start;flex-wrap:wrap;gap:10px;padding:12px}
+  .donation-spotlight-copy{flex-basis:calc(100% - 54px);align-self:center}
+  .donation-spotlight-button{width:100%;justify-content:center;white-space:normal}
+}
