@@ -46,6 +46,7 @@
           <section class="dashboard-cover" id="dashboard-cover" aria-label="Capa do negócio" hidden><img id="dashboard-cover-image" alt=""><div class="cover-overlay"><span class="cover-eyebrow">DO NOSSO CANTINHO</span><strong id="cover-business-name">Cantinho da Ana</strong><span id="cover-hours"></span></div></section>
           <div class="mode-banner"><span class="mode-symbol">✦</span><span><strong>Modo simples</strong><small>O essencial para tocar seu negócio, sem complicação.</small></span><button class="text-button" data-route="configuracoes">Personalizar <span>→</span></button></div>
           <div class="metric-grid" id="dashboard-metrics"></div>
+          <section class="panel chart-panel dashboard-chart"><div class="panel-heading"><div><h2>Faturamento na semana</h2><p>Vendas brutas registradas nos últimos 7 dias</p></div><span class="chart-period">7 DIAS</span></div><div id="dashboard-revenue-chart"></div></section>
           <div class="dashboard-grid">
             <section class="panel orders-panel"><div class="panel-heading"><div><h2>Pedidos recentes</h2><p>O que está acontecendo agora</p></div><a href="#pedidos" class="inline-link" data-route="pedidos">Ver todos <span>→</span></a></div><div id="recent-orders"></div></section>
             <section class="panel stock-panel"><div class="panel-heading"><div><h2>Estoque em atenção</h2><p>Não deixe faltar o que mais vende</p></div><a href="#estoque" class="inline-link" data-route="estoque">Ver estoque <span>→</span></a></div><div id="stock-alerts"></div></section>
@@ -77,6 +78,7 @@
         <section class="page" id="page-financeiro" aria-labelledby="finance-title">
           <div class="page-heading"><div><p class="eyebrow">GESTÃO</p><h1 id="finance-title">Financeiro</h1><p class="subtitle">Acompanhe seu faturamento bruto. Um passo de cada vez.</p></div><button class="button button-primary" data-action="new-sale"><span>＋</span> Registrar venda</button></div>
           <div class="metric-grid compact-metrics" id="finance-metrics"></div>
+          <section class="panel chart-panel finance-chart"><div class="panel-heading"><div><h2>Seu ritmo de vendas</h2><p>Faturamento bruto por dia · últimos 7 dias</p></div><span class="chart-period">7 DIAS</span></div><div id="finance-revenue-chart"></div></section>
           <section class="panel finance-panel"><div class="panel-heading"><div><h2>Vendas recentes</h2><p>Valores registrados por você</p></div></div><div id="sales-list"></div></section>
           <p class="feature-note"><span>✦</span> Faturamento bruto não substitui seu controle contábil. Custos, despesas e margens estão no <button class="link-button" data-action="enable-advanced">Modo avançado</button>.</p>
         </section>

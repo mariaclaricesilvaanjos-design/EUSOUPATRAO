@@ -102,6 +102,29 @@
   }
   function statusClass(status){return status==="Em preparo"?"status-preparo":status==="Pronto"?"status-pronto":status==="Entregue"?"status-entregue":"status-cancelado";}
   function metric(label,value,foot,icon,iconClass){return `<article class="metric-card"><div class="metric-top"><span class="metric-label">${label}</span><span class="metric-icon ${iconClass}">${icon}</span></div><div class="metric-value">${value}</div><div class="metric-foot">${foot}</div></article>`;}
+  function revenueSeries(){
+    const days=Array.from({length:7},(_,index)=>{
+      const date=new Date();date.setHours(0,0,0,0);date.setDate(date.getDate()-(6-index));
+      const key=date.toDateString(),total=state.sales.filter(sale=>new Date(sale.date).toDateString()===key).reduce((sum,sale)=>sum+Number(sale.amount||0),0);
+      return {date,total,label:new Intl.DateTimeFormat("pt-BR",{weekday:"short"}).format(date).replace(".","")};
+    });
+    return days;
+  }
+  function revenueChart(id,container){
+    const days=revenueSeries(),maximum=Math.max(...days.map(day=>day.total));
+    if(maximum<=0)return '<div class="chart-empty"><span>◷</span><strong>Sem vendas registradas nesta semana</strong><small>Quando registrar vendas, a evolução aparece aqui.</small></div>';
+    const width=720,height=258,chartFontSize=Math.min(24,Math.max(8,8640/(container.clientWidth||720))),left=66,right=704,top=20,bottom=202,plotWidth=right-left,plotHeight=bottom-top,step=Math.max(1,Math.ceil(maximum/4/10)*10),axisMax=step*4;
+    const points=days.map((day,index)=>({x:left+plotWidth*index/(days.length-1),y:bottom-plotHeight*day.total/axisMax,...day}));
+    const line=points.map(point=>`${point.x},${point.y}`).join(" "),area=`${left},${bottom} ${line} ${right},${bottom}`;
+    const grid=Array.from({length:5},(_,index)=>{
+      const value=axisMax*(4-index)/4,y=top+plotHeight*index/4;
+      return `<g class="chart-gridline"><line x1="${left}" y1="${y}" x2="${right}" y2="${y}"/><text style="font-size:${chartFontSize}px" x="${left-12}" y="${y+4}" text-anchor="end">${value>=1000?`R$ ${(value/1000).toLocaleString("pt-BR",{maximumFractionDigits:1})} mil`:`R$ ${Math.round(value)}`}</text></g>`;
+    }).join("");
+    const labels=points.map(point=>`<text class="chart-x-label" style="font-size:${chartFontSize}px" x="${point.x}" y="${bottom+28}" text-anchor="middle">${escapeHtml(point.label)}</text>`).join("");
+    const dots=points.map(point=>`<circle class="chart-point" cx="${point.x}" cy="${point.y}" r="5"><title>${new Intl.DateTimeFormat("pt-BR",{weekday:"long",day:"numeric",month:"long"}).format(point.date)}: ${money(point.total)}</title></circle>`).join("");
+    const description=days.map(day=>`${new Intl.DateTimeFormat("pt-BR",{day:"2-digit",month:"2-digit"}).format(day.date)}: ${money(day.total)}`).join("; ");
+    return `<svg class="revenue-chart" viewBox="0 0 ${width} ${height}" role="img" aria-labelledby="${id}-title ${id}-desc" preserveAspectRatio="xMidYMid meet"><title id="${id}-title">Faturamento bruto por dia nos últimos 7 dias</title><desc id="${id}-desc">${escapeHtml(description)}</desc><defs><linearGradient id="${id}-area" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="var(--accent)" stop-opacity=".24"/><stop offset="100%" stop-color="var(--accent)" stop-opacity="0"/></linearGradient></defs>${grid}<polygon class="chart-area" points="${area}" fill="url(#${id}-area)"/><polyline class="chart-line" points="${line}"/>${dots}${labels}</svg><div class="chart-footnote"><span><i></i> Faturamento bruto</span><strong>${money(days.reduce((sum,day)=>sum+day.total,0))} <small>na semana</small></strong></div>`;
+  }
   function renderDashboard(){
     const orders=todaysOrders();
     $("#dashboard-metrics").innerHTML=[
@@ -111,6 +134,7 @@
       metric("Clientes",state.clients.length,"Pessoas que já compraram","♙","metric-pink")
     ].join("");
     $("#recent-orders").innerHTML=orders.length?`<div class="order-list">${orders.slice(0,4).map(order=>`<div class="order-row"><span class="order-badge">${escapeHtml(order.id.slice(-3))}</span><span class="order-description"><strong>${escapeHtml(order.client)}</strong><small>${escapeHtml(order.item)}</small></span><span class="order-price">${money(order.total)}</span><span class="status ${statusClass(order.status)}">${escapeHtml(order.status)}</span></div>`).join("")}</div>`:`<div class="empty-state"><span>▤</span>Nenhum pedido registrado hoje.<br>Que tal anotar sua primeira venda?</div>`;
+    const dashboardChart=$("#dashboard-revenue-chart");dashboardChart.innerHTML=revenueChart("dashboard-chart",dashboardChart);
     const low=state.products.filter(product=>Number(product.quantity)<=Number(product.minimum));
     $("#stock-alerts").innerHTML=low.length?low.slice(0,4).map(product=>`<div class="stock-item"><span class="stock-emoji">${escapeHtml(product.emoji||"📦")}</span><span class="stock-copy"><strong>${escapeHtml(product.name)}</strong><small>${escapeHtml(product.category||"Produto")}</small></span><span class="stock-level ${product.quantity===0?"low":""}">${product.quantity===0?"Esgotado":`${product.quantity} un.`}</span></div>`).join(""):`<div class="empty-state"><span>✓</span>Seu estoque está em dia!</div>`;
     $("#pending-count").textContent=state.orders.filter(order=>order.status==="Em preparo").length;
@@ -132,6 +156,7 @@
   function renderFinance(){
     const total=todaysSales(),all=state.sales.reduce((n,s)=>n+Number(s.amount),0);
     $("#finance-metrics").innerHTML=[metric("Faturamento de hoje",money(total),"Vendas brutas registradas","↗","metric-purple"),metric("Vendas registradas",state.sales.length,"Neste dispositivo","▤","metric-green"),metric("Ticket médio hoje",money(todaysOrders().length?total/todaysOrders().length:0),"Considerando pedidos de hoje","◷","metric-orange"),metric("Faturamento total",money(all),"Desde o início do controle","＋","metric-pink")].join("");
+    const financeChart=$("#finance-revenue-chart");financeChart.innerHTML=revenueChart("finance-chart",financeChart);
     const sales=[...state.sales].sort((a,b)=>new Date(b.date)-new Date(a.date));
     $("#sales-list").innerHTML=sales.length?sales.map(s=>`<div class="sale-row"><span class="sale-date"><strong>${new Date(s.date).getDate()}</strong><small>${new Intl.DateTimeFormat("pt-BR",{month:"short"}).format(new Date(s.date))}</small></span><span class="sale-copy"><strong>${escapeHtml(s.description)}</strong><small>${new Intl.DateTimeFormat("pt-BR",{hour:"2-digit",minute:"2-digit"}).format(new Date(s.date))} · ${escapeHtml(s.kind||"Venda")}</small></span><span class="sale-amount">${money(s.amount)}</span></div>`).join(""):`<div class="empty-state"><span>◷</span>Nenhuma venda registrada.</div>`;
   }
@@ -448,6 +473,15 @@
   });
   $("#app-dialog").addEventListener("click",event=>{if(event.target===$("#app-dialog"))$("#app-dialog").close();});
   document.addEventListener("keydown",event=>{if(event.key==="Escape")$("#sidebar").classList.remove("open");});
+  let chartResizeTimer;
+  window.addEventListener("resize",()=>{
+    clearTimeout(chartResizeTimer);
+    chartResizeTimer=setTimeout(()=>{
+      const dashboardChart=$("#dashboard-revenue-chart"),financeChart=$("#finance-revenue-chart");
+      dashboardChart.innerHTML=revenueChart("dashboard-chart",dashboardChart);
+      financeChart.innerHTML=revenueChart("finance-chart",financeChart);
+    },120);
+  });
   window.addEventListener("hashchange",()=>navigate(location.hash.slice(1),true));
   renderAll();navigate(routeNames[location.hash.slice(1)]?location.hash.slice(1):"inicio",true);
   if(firstVisit&&!state.onboardingDone)showOnboarding();
